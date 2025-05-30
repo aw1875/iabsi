@@ -1,0 +1,11 @@
+# Comma separated list of paths to scan for changes.
+scan_paths = /home/user/Downloads,/home/user/Documents
+
+# Comma separated list of paths to watch for changes.
+watch_paths = /home/user/Downloads,/home/user/Pictures
+
+# Interval in seconds to scan the scan paths for changes.
+scan_interval_seconds = 86400 # 24 hours
+
+# Maximum number of retries for failed operations.
+max_retries = 5

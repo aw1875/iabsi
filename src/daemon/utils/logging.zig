@@ -139,12 +139,12 @@ var core_instance: ?*CoreLogger = null;
 var mutex = std.Thread.Mutex{};
 
 /// Initialize the global logger instance. This should be called once at the start of the program.
-pub fn init(allocator: std.mem.Allocator, level: LogLevel, file_path: ?[]const u8) !void {
+pub fn init(allocator: std.mem.Allocator, level: LogLevel) !void {
     mutex.lock();
     defer mutex.unlock();
 
     const core = try allocator.create(CoreLogger);
-    core.* = try CoreLogger.init(allocator, level, file_path);
+    core.* = try CoreLogger.init(allocator, level, if (@import("builtin").mode == .Debug) "./iabsid.log" else "/var/log/iabsi.log");
     core_instance = core;
 }
 

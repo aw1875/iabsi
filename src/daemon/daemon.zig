@@ -1,10 +1,12 @@
 const std = @import("std");
 
-const Config = @import("utils/config.zig");
 const Database = @import("db/database.zig");
+const ApiClient = @import("http/requests.zig");
+const Config = @import("utils/config.zig");
 const Logger = @import("utils/logging.zig");
 
 pub const DaemonArgs = struct {
+    api_client: *const ApiClient,
     config: *Config,
     database: *Database,
 };
@@ -12,6 +14,7 @@ pub const DaemonArgs = struct {
 const Daemon = @This();
 
 allocator: std.mem.Allocator,
+api_client: *const ApiClient,
 config: *Config,
 database: *Database,
 logger: Logger.Logger,
@@ -22,8 +25,9 @@ pub fn init(allocator: std.mem.Allocator, args: DaemonArgs) !Daemon {
     var pool = try allocator.create(std.Thread.Pool);
     try pool.init(.{ .allocator = allocator });
 
-    return Daemon{
+    return .{
         .allocator = allocator,
+        .api_client = args.api_client,
         .config = args.config,
         .database = args.database,
         .logger = Logger.scoped(.daemon),

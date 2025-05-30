@@ -1,4 +1,5 @@
 const std = @import("std");
+
 const sqlite = @import("sqlite");
 
 const tables = @embedFile("sql/tables.sql");
