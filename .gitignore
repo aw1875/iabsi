@@ -1,0 +1,8 @@
+# Zig build artifacts
+.zig-cache
+zig-out
+
+# Local dev files
+config
+*.db
+*.log

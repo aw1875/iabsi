@@ -1,0 +1,17 @@
+.{
+    .name = .iabsi,
+    .version = "0.0.0",
+    .fingerprint = 0xaab59ec04095e8f2,
+    .minimum_zig_version = "0.14.1",
+    .dependencies = .{
+        .sqlite = .{
+            .url = "git+https://github.com/vrischmann/zig-sqlite#ce4976f30ac25067e70f8791a6be7fe93175641f",
+            .hash = "sqlite-3.48.0-F2R_axqHDgCxZnwMNgWsc8oFRjiZXj96WNJp9a4RlH0n",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
