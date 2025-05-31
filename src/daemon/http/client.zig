@@ -15,13 +15,13 @@ fn HttpResponse(comptime T: type) type {
         pub fn json(self: *const @This()) T {
             return switch (self.*) {
                 ._json => |j| j.value,
-                ._string => @compileError("Cannot access string value from JSON response"),
+                ._string => @panic("Cannot access string value from JSON response"),
             };
         }
 
         pub fn string(self: *const @This()) []const u8 {
             return switch (self.*) {
-                ._json => @compileError("Cannot access JSON value from string response"),
+                ._json => @panic("Cannot access JSON value from string response"),
                 ._string => |s| s,
             };
         }
@@ -31,7 +31,6 @@ fn HttpResponse(comptime T: type) type {
 const HttpClientArgs = struct {
     base_url: []const u8,
     timeout_ms: u32,
-    max_retries: u32,
 };
 
 const HttpClient = @This();
@@ -39,7 +38,6 @@ const HttpClient = @This();
 allocator: std.mem.Allocator,
 base_url: []const u8,
 timeout_ms: u32,
-max_retries: u32,
 _client: std.http.Client,
 
 pub fn init(allocator: std.mem.Allocator, args: HttpClientArgs) !HttpClient {
@@ -47,7 +45,6 @@ pub fn init(allocator: std.mem.Allocator, args: HttpClientArgs) !HttpClient {
         .allocator = allocator,
         .base_url = try allocator.dupe(u8, args.base_url),
         .timeout_ms = args.timeout_ms,
-        .max_retries = args.max_retries,
         ._client = std.http.Client{ .allocator = allocator },
     };
 }
@@ -120,7 +117,7 @@ pub fn post(self: *HttpClient, comptime R: type, comptime B: type, path: []const
         void => req.response.status == .ok or
             req.response.status == .created or
             req.response.status == .no_content,
-        else => if (req.response.status == .ok or req.response.status == .created or req.response.status == .no_content)
+        else => if (req.response.status != .ok and req.response.status != .created and req.response.status != .no_content)
             null
         else
             try self.deserialize(R, try req.reader().readAllAlloc(self.allocator, 1024 * 1024)),
@@ -151,7 +148,7 @@ pub fn put(self: *HttpClient, comptime R: type, comptime B: type, path: []const 
         void => req.response.status == .ok or
             req.response.status == .created or
             req.response.status == .no_content,
-        else => if (req.response.status == .ok or req.response.status == .created or req.response.status == .no_content)
+        else => if (req.response.status != .ok and req.response.status != .created and req.response.status != .no_content)
             null
         else
             try self.deserialize(R, try req.reader().readAllAlloc(self.allocator, 1024 * 1024)),
@@ -200,7 +197,7 @@ pub fn patch(self: *HttpClient, comptime R: type, comptime B: type, path: []cons
         void => req.response.status == .ok or
             req.response.status == .created or
             req.response.status == .no_content,
-        else => if (req.response.status == .ok or req.response.status == .created or req.response.status == .no_content)
+        else => if (req.response.status != .ok and req.response.status != .created and req.response.status != .no_content)
             null
         else
             try self.deserialize(R, try req.reader().readAllAlloc(self.allocator, 1024 * 1024)),

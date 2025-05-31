@@ -5,8 +5,12 @@ const Logger = @import("../utils/logging.zig");
 const ConfigurableOptions = struct {
     scan_paths: [][]const u8,
     watch_paths: [][]const u8,
+    excluded_paths: [][]const u8,
+    excluded_files: [][]const u8,
     scan_interval_seconds: u32,
     max_retries: u32,
+    max_file_size_mb: u32,
+    follow_symlinks: bool,
 };
 
 const Config = @This();
@@ -16,11 +20,14 @@ socket_path: []const u8 = "/tmp/iabsi.sock",
 database_path: []const u8 = if (@import("builtin").mode == .Debug) "./iabsid.db" else "/var/lib/iabsi/iabsid.db",
 scan_paths: [][]const u8 = &.{},
 watch_paths: [][]const u8 = &.{},
+excluded_paths: [][]const u8 = &.{},
+excluded_files: [][]const u8 = &.{},
 scan_interval_seconds: u32 = 24 * 60 * 60, // 24 hours
 http_timeout_ms: u32 = 30 * 1000, // 30 seconds
 max_retries: u32 = 3,
 chunk_size_bytes: u32 = 1024 * 1024, // 1 MB
 max_file_size_mb: u32 = 100, // 100 MB
+follow_symlinks: bool = false,
 
 _allocator: std.mem.Allocator,
 _needs_free: std.StringHashMap(void),

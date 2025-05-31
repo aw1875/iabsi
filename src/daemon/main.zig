@@ -5,6 +5,7 @@ const Database = @import("db/database.zig");
 const HttpClient = @import("http/client.zig");
 const ApiClient = @import("http/requests.zig");
 const Config = @import("utils/config.zig");
+const Exclusions = @import("utils/exclusions.zig");
 const Logger = @import("utils/logging.zig");
 
 pub fn main() !void {
@@ -12,26 +13,34 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     defer if (gpa.deinit() != .ok) @panic("Failed to deinitialize allocator");
 
+    // Initialize logger
     try Logger.init(allocator, if (@import("builtin").mode == .Debug) .debug else .info);
     defer Logger.deinit(allocator);
 
+    // Load configuration
     var config = try Config.load(allocator, "./config"); // TODO: This should be in a known path later
     defer config.deinit();
 
-    var logger = Logger.scoped(.main);
-
+    // Setup Database
     var database = try Database.init(allocator, config.database_path);
     defer database.deinit();
 
-    var http_client = try HttpClient.init(allocator, .{
-        .base_url = config.base_api_url,
-        .timeout_ms = config.http_timeout_ms,
-        .max_retries = config.max_retries,
-    });
+    // Setup HTTP client and API wrapper
+    var http_client = try HttpClient.init(allocator, .{ .base_url = config.base_api_url, .timeout_ms = config.http_timeout_ms });
     defer http_client.deinit();
-
     const api_client = ApiClient.init(&http_client);
 
+    // Setup exclusions
+    try Exclusions.init(allocator);
+    defer Exclusions.deinit(allocator);
+    var exclusions = Exclusions.getInstance();
+
+    // Add exclusions
+    try exclusions.addCommonExclusions(); // TODO: Make this configurable
+    for (config.excluded_paths) |path| try exclusions.excludeDir(path);
+    for (config.excluded_files) |file| try exclusions.excludeFile(file);
+
+    // Setup daemon
     var daemon = try Daemon.init(allocator, .{
         .api_client = &api_client,
         .config = &config,
@@ -40,8 +49,6 @@ pub fn main() !void {
     defer daemon.deinit();
 
     setupSignalHandlers(&daemon);
-
-    logger.info("Starting iabsid", .{});
 
     try daemon.run();
 }

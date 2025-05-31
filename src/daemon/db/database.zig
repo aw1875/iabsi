@@ -37,3 +37,7 @@ pub fn init(allocator: std.mem.Allocator, db_path: []const u8) !BackupDatabase {
 pub fn deinit(self: *BackupDatabase) void {
     self.db.deinit();
 }
+
+pub fn getDb(self: *BackupDatabase) *sqlite.Db {
+    return &self.db;
+}

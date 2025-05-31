@@ -1,11 +1,23 @@
 # Comma separated list of paths to scan for changes.
-scan_paths = /home/user/Downloads,/home/user/Documents
+scan_paths = /home/user/Downloads, /home/user/Documents
 
 # Comma separated list of paths to watch for changes.
-watch_paths = /home/user/Downloads,/home/user/Pictures
+watch_paths = /home/user/Downloads, /home/user/Pictures
+
+# Comma separated list of paths to exclude from scanning. These will be treated as directories. These can also be basic glob patterns.
+excluded_paths = /home/user/Downloads/temp, /home/user/Documents/archive, *.cache*, *node_modules*
+
+# Comma separated list of files to exclude from scanning. These will be treated as files. These can also be basic glob patterns.
+excluded_files = /home/user/Downloads/tempfile.txt, /home/user/Documents/old_report.pdf, *.log, *.tmp
 
 # Interval in seconds to scan the scan paths for changes.
 scan_interval_seconds = 86400 # 24 hours
 
 # Maximum number of retries for failed operations.
 max_retries = 5
+
+# Maximum number of files to process in a single batch. Should be a valid u32 value.
+max_file_size_mb = 100 # 100 MB
+
+# Should the scanner follow symbolic links?
+follow_symlinks = false
