@@ -12,10 +12,8 @@ const FileChunk = struct {
     offset: u64,
 
     pub fn init(allocator: std.mem.Allocator, chunk: ChunkResult, index: usize) !FileChunk {
-        const hash_str = try std.fmt.allocPrint(allocator, "{s}", .{std.fmt.fmtSliceHexLower(&chunk.hash)});
-
-        return FileChunk{
-            .hash = hash_str,
+        return .{
+            .hash = try std.fmt.allocPrint(allocator, "{s}", .{std.fmt.fmtSliceHexLower(&chunk.hash)}),
             .order = @intCast(index),
             .offset = @intCast(chunk.size * index),
         };
@@ -31,14 +29,12 @@ const FileMetadataBody = struct {
     chunks: []FileChunk,
 
     pub fn init(allocator: std.mem.Allocator, client_id: []const u8, file_info: FileInfo, chunks: []FileChunk) !FileMetadataBody {
-        const hash_str = try std.fmt.allocPrint(allocator, "{s}", .{std.fmt.fmtSliceHexLower(&file_info.file_hash)});
-
-        return FileMetadataBody{
+        return .{
             .client_id = client_id,
             .original_path = file_info.path,
             .size = file_info.size,
             .modified_time = file_info.modified,
-            .file_hash = hash_str,
+            .file_hash = try std.fmt.allocPrint(allocator, "{s}", .{std.fmt.fmtSliceHexLower(&file_info.file_hash)}),
             .chunks = chunks,
         };
     }

@@ -207,14 +207,12 @@ pub fn patch(self: *HttpClient, comptime R: type, comptime B: type, path: []cons
 fn deserialize(self: *HttpClient, comptime T: type, body: []const u8) !HttpResponse(T) {
     return switch (@typeInfo(T)) {
         .pointer => |ptr| {
-            if (ptr.child == u8) {
-                return HttpResponse(T){ ._string = body };
-            } else {
-                defer self.allocator.free(body);
+            if (ptr.child == u8) return HttpResponse(T){ ._string = body };
 
-                const parsed = try std.json.parseFromSlice(T, self.allocator, body, .{ .allocate = .alloc_always });
-                return HttpResponse(T){ ._json = parsed };
-            }
+            defer self.allocator.free(body);
+
+            const parsed = try std.json.parseFromSlice(T, self.allocator, body, .{ .allocate = .alloc_always });
+            return HttpResponse(T){ ._json = parsed };
         },
         .@"struct" => {
             defer self.allocator.free(body);

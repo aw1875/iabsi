@@ -5,7 +5,7 @@ scan_paths = /home/user/Downloads, /home/user/Documents
 watch_paths = /home/user/Downloads, /home/user/Pictures
 
 # Comma separated list of paths to exclude from scanning. These will be treated as directories. These can also be basic glob patterns.
-excluded_paths = /home/user/Downloads/temp, /home/user/Documents/archive, *.cache*, *node_modules*
+excluded_paths = /home/user/Downloads/temp, /home/user/Documents/archive, **/.cache/*, **/node_modules/*
 
 # Comma separated list of files to exclude from scanning. These will be treated as files. These can also be basic glob patterns.
 excluded_files = /home/user/Downloads/tempfile.txt, /home/user/Documents/old_report.pdf, *.log, *.tmp

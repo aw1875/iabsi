@@ -37,8 +37,8 @@ pub fn main() !void {
 
     // Add exclusions
     try exclusions.addCommonExclusions(); // TODO: Make this configurable
-    for (config.excluded_paths) |path| try exclusions.excludeDir(path);
-    for (config.excluded_files) |file| try exclusions.excludeFile(file);
+    for (config.excluded_paths) |path| try exclusions.addExclusion(path);
+    for (config.excluded_files) |file| try exclusions.addExclusion(file);
 
     // Setup daemon
     var daemon = try Daemon.init(allocator, .{

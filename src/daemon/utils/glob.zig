@@ -25,6 +25,7 @@ fn globMatchHelper(pattern: []const u8, name: []const u8, px: usize, nx: usize) 
 
                 return false;
             } else {
+                if (isGreedy(pattern, px)) return globMatchHelper(pattern, name, px + 1, name.len);
                 if (globMatchHelper(pattern, name, px + 1, nx)) return true;
 
                 var i = nx;
@@ -47,13 +48,15 @@ fn globMatchHelper(pattern: []const u8, name: []const u8, px: usize, nx: usize) 
     }
 }
 
-test "basic wildcard matching" {
-    try std.testing.expect(globMatch("*.txt", "file.txt"));
-    try std.testing.expect(!globMatch("*.txt", "file.md"));
-    try std.testing.expect(globMatch("file.*", "file.txt"));
-    try std.testing.expect(globMatch("file.*", "file."));
-    try std.testing.expect(globMatch("*", "file.txt"));
-    try std.testing.expect(globMatch("f*e.txt", "file.txt"));
+fn isGreedy(pattern: []const u8, px: usize) bool {
+    if (px + 1 != pattern.len) return false; // Not at end
+
+    var i: usize = 0;
+    while (i + 1 < px) : (i += 1) {
+        if (pattern[i] == '*' and pattern[i + 1] == '*') return true;
+    }
+
+    return false;
 }
 
 test "character matching" {
@@ -85,6 +88,32 @@ test "directory specific" {
     try std.testing.expect(!globMatch("docs/*.md", "docs/readme.txt"));
     try std.testing.expect(globMatch("docs/*", "docs/readme.md"));
     try std.testing.expect(!globMatch("docs/*", "docs/sub/readme.md"));
+}
+
+test "wildcards" {
+    try std.testing.expect(globMatch("a/**", "a/b"));
+    try std.testing.expect(globMatch("**", "a/b/c"));
+    try std.testing.expect(globMatch("**/**", "a/b/c"));
+    try std.testing.expect(globMatch("**/**/*", "a/b/c"));
+    try std.testing.expect(globMatch("**/b/*", "a/b/c"));
+    try std.testing.expect(globMatch("**/b/**", "a/b/c"));
+    try std.testing.expect(globMatch("*/b/**", "a/b/c"));
+    try std.testing.expect(globMatch("a/**", "a/b/c"));
+    try std.testing.expect(globMatch("a/**/*", "a/b/c"));
+    try std.testing.expect(globMatch("**", "a/b/c/d"));
+    try std.testing.expect(globMatch("**/**", "a/b/c/d"));
+    try std.testing.expect(globMatch("**/**/*", "a/b/c/d"));
+    try std.testing.expect(globMatch("**/**/d", "a/b/c/d"));
+    try std.testing.expect(globMatch("**/b/**", "a/b/c/d"));
+    try std.testing.expect(globMatch("**/b/*/*", "a/b/c/d"));
+    try std.testing.expect(globMatch("**/d", "a/b/c/d"));
+    try std.testing.expect(globMatch("*/b/**", "a/b/c/d"));
+    try std.testing.expect(globMatch("a/**", "a/b/c/d"));
+    try std.testing.expect(globMatch("a/**/*", "a/b/c/d"));
+    try std.testing.expect(globMatch("a/**/**/*", "a/b/c/d"));
+    try std.testing.expect(globMatch("**/*.git/*", "/a/b/c/.git/d"));
+    try std.testing.expect(globMatch("**/*.git/*", "/a/b/c/.git/d/e"));
+    try std.testing.expect(globMatch("**/*c/*", "/a/b/c/d"));
 }
 
 test "empty strings and edge cases" {

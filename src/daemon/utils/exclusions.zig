@@ -2,14 +2,8 @@ const std = @import("std");
 
 const globMatch = @import("glob.zig").globMatch;
 
-const ExclusionType = enum {
-    file,
-    dir,
-};
-
 const ExclusionRule = struct {
     pattern: []const u8,
-    type: ExclusionType,
 
     pub fn matches(self: *const ExclusionRule, path: []const u8) bool {
         return globMatch(self.pattern, path);
@@ -36,49 +30,39 @@ pub const ExclusionRules = struct {
         self.exclusion_rules.deinit();
     }
 
-    pub fn excludeFile(self: *ExclusionRules, path: []const u8) !void {
+    pub fn addExclusion(self: *ExclusionRules, path: []const u8) !void {
         const owned_path = try self.allocator.dupe(u8, path);
-        try self.exclusion_rules.put(owned_path, ExclusionRule{ .pattern = owned_path, .type = .file });
-    }
-
-    pub fn excludeDir(self: *ExclusionRules, path: []const u8) !void {
-        const owned_path = try self.allocator.dupe(u8, path);
-        try self.exclusion_rules.put(owned_path, ExclusionRule{ .pattern = owned_path, .type = .dir });
+        try self.exclusion_rules.put(owned_path, ExclusionRule{ .pattern = owned_path });
     }
 
     pub fn addCommonExclusions(self: *ExclusionRules) !void {
         // System directories
-        try self.excludeDir("/proc*");
-        try self.excludeDir("/sys*");
-        try self.excludeDir("/dev*");
-        try self.excludeDir("/tmp*");
-        try self.excludeDir("/var/tmp*");
+        try self.addExclusion("/proc/*");
+        try self.addExclusion("/sys/*");
+        try self.addExclusion("/dev/*");
+        try self.addExclusion("/tmp/*");
+        try self.addExclusion("/var/tmp/*");
 
         // Cache directories and their files
-        try self.excludeDir("*.cache*");
-        try self.excludeDir("*node_modules*");
-        try self.excludeDir("*.git*");
+        try self.addExclusion("**/.cache/*");
+        try self.addExclusion("**/node_modules/*");
+        try self.addExclusion("**/.git/*");
 
         // Temporary files
-        try self.excludeFile("*.tmp");
-        try self.excludeFile("*.temp");
-        try self.excludeFile("*~");
+        try self.addExclusion("*.tmp");
+        try self.addExclusion("*.temp");
+        try self.addExclusion("*~");
 
         // Large binary files that change frequently
-        try self.excludeFile("*.log");
-        try self.excludeFile("*.pid");
-        try self.excludeFile("*.lock");
+        try self.addExclusion("*.log");
+        try self.addExclusion("*.pid");
+        try self.addExclusion("*.lock");
     }
 
-    pub fn shouldExclude(self: *ExclusionRules, path: []const u8, is_dir: bool) bool {
+    pub fn shouldExclude(self: *ExclusionRules, path: []const u8) bool {
         var iter = self.exclusion_rules.valueIterator();
         while (iter.next()) |rule| {
-            const type_match = switch (rule.type) {
-                .dir => is_dir,
-                .file => !is_dir,
-            };
-
-            if (type_match and rule.matches(path)) return true;
+            if (rule.matches(path)) return true;
         }
 
         return false;

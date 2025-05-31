@@ -53,7 +53,7 @@ pub fn scanDirectory(
         const full_path = try std.fs.path.join(self.allocator, &[_][]const u8{ dir_path, entry.path });
         defer self.allocator.free(full_path);
 
-        if (exclusions.shouldExclude(full_path, entry.kind == .directory)) {
+        if (exclusions.shouldExclude(full_path)) {
             self.logger.debug("Skipping excluded entry: {s} ({s})", .{ full_path, @tagName(entry.kind) });
             switch (entry.kind) {
                 .directory => stats.dirs_excluded += 1,
