@@ -308,7 +308,7 @@ fn backupFile(self: *Daemon, file_info: FileInfo) !void {
         }
     }
 
-    const file_uploaded = try self.api_client.uploadFile("my_client", file_info, chunks);
+    const file_uploaded = try self.api_client.uploadFile("my_client", file_info, chunks); // TODO: Replace "my_client" with actual client identifier
     if (!file_uploaded) return error.FileUploadFailed;
 
     self.backup_mutex.lock();

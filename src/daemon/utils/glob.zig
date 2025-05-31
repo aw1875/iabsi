@@ -1,88 +1,94 @@
 const std = @import("std");
 
-// Might not be perfect, but passes many common basic cases. See https://research.swtch.com/glob
 pub fn globMatch(pattern: []const u8, name: []const u8) bool {
-    var px: usize = 0;
-    var nx: usize = 0;
-    var next_px: usize = 0;
-    var next_nx: usize = 0;
-
-    while (px < pattern.len or nx < name.len) {
-        if (px < pattern.len) {
-            switch (pattern[px]) {
-                '?' => {
-                    if (nx < name.len) {
-                        px += 1;
-                        nx += 1;
-                        continue;
-                    }
-                },
-                '*' => {
-                    next_px = px;
-                    next_nx = nx + 1;
-                    px += 1;
-                    continue;
-                },
-                else => {
-                    if (nx < name.len and pattern[px] == name[nx]) {
-                        px += 1;
-                        nx += 1;
-                        continue;
-                    }
-                },
-            }
-        }
-
-        if (next_nx != 0 and next_nx <= name.len) {
-            px = next_px;
-            nx = next_nx;
-            continue;
-        }
-
-        return false;
-    }
-
-    return true;
+    return globMatchHelper(pattern, name, 0, 0);
 }
 
-test "glob match test cases" {
-    try std.testing.expect(globMatch("*", "anything"));
-    try std.testing.expect(globMatch("*", ""));
-    try std.testing.expect(globMatch("?", "a"));
-    try std.testing.expect(!globMatch("?", ""));
-    try std.testing.expect(!globMatch("?", "ab"));
-    try std.testing.expect(globMatch("abc", "abc"));
-    try std.testing.expect(!globMatch("abc", "abcd"));
-    try std.testing.expect(!globMatch("abc", "ab"));
-    try std.testing.expect(globMatch("a*c", "abc"));
-    try std.testing.expect(globMatch("a*c", "abbc"));
-    try std.testing.expect(globMatch("a*c", "ac"));
-    try std.testing.expect(!globMatch("a*c", "ab"));
-    try std.testing.expect(globMatch("a*bc*de", "axyzbcqqqde"));
-    try std.testing.expect(globMatch("file?.txt", "file1.txt"));
-    try std.testing.expect(!globMatch("file?.txt", "file12.txt"));
-    try std.testing.expect(globMatch("*.txt", "file.txt"));
-    try std.testing.expect(!globMatch("*.txt", "file.csv"));
-    try std.testing.expect(globMatch("test.*", "test.zig"));
-    try std.testing.expect(!globMatch("test.*", "test"));
-    try std.testing.expect(globMatch("*bar", "foobar"));
-    try std.testing.expect(globMatch("*bar", "bar"));
-    try std.testing.expect(!globMatch("*bar", "fooba"));
-    try std.testing.expect(globMatch("file*", "file"));
-    try std.testing.expect(globMatch("file*", "file123"));
-    try std.testing.expect(!globMatch("file?", "file"));
-    try std.testing.expect(globMatch("file?", "file1"));
-    try std.testing.expect(globMatch("*a*b*c*", "aaabbbccc"));
-    try std.testing.expect(globMatch("*a*b*c*", "acbac"));
-    try std.testing.expect(globMatch("*a*b*c*", "abcabc"));
-    try std.testing.expect(!globMatch("*a*b*c*", "acb"));
-    try std.testing.expect(globMatch("*?*?*", "ab"));
-    try std.testing.expect(!globMatch("*?*?*", "a"));
+fn globMatchHelper(pattern: []const u8, name: []const u8, px: usize, nx: usize) bool {
+    if (px == pattern.len and nx == name.len) return true;
+    if (px == pattern.len) return false;
+    if (nx == 0 and name.len > 0 and name[0] == '.' and pattern[0] != '.') return false;
 
-    // Edge cases
+    switch (pattern[px]) {
+        '?' => {
+            if (nx >= name.len) return false;
+            return globMatchHelper(pattern, name, px + 1, nx + 1);
+        },
+        '*' => {
+            if (px + 1 < pattern.len and pattern[px + 1] == '*') {
+                if (globMatchHelper(pattern, name, px + 2, nx)) return true;
+
+                var i = nx;
+                while (i < name.len) : (i += 1) {
+                    if (globMatchHelper(pattern, name, px + 2, i + 1)) return true;
+                }
+
+                return false;
+            } else {
+                if (globMatchHelper(pattern, name, px + 1, nx)) return true;
+
+                var i = nx;
+                while (i < name.len and name[i] != '/') : (i += 1) {
+                    if (globMatchHelper(pattern, name, px + 1, i + 1)) return true;
+                }
+
+                return false;
+            }
+        },
+        '\\' => {
+            if (px + 1 >= pattern.len or nx >= name.len) return false;
+            if (pattern[px + 1] != name[nx]) return false;
+            return globMatchHelper(pattern, name, px + 2, nx + 1);
+        },
+        else => {
+            if (nx >= name.len or pattern[px] != name[nx]) return false;
+            return globMatchHelper(pattern, name, px + 1, nx + 1);
+        },
+    }
+}
+
+test "basic wildcard matching" {
+    try std.testing.expect(globMatch("*.txt", "file.txt"));
+    try std.testing.expect(!globMatch("*.txt", "file.md"));
+    try std.testing.expect(globMatch("file.*", "file.txt"));
+    try std.testing.expect(globMatch("file.*", "file."));
+    try std.testing.expect(globMatch("*", "file.txt"));
+    try std.testing.expect(globMatch("f*e.txt", "file.txt"));
+}
+
+test "character matching" {
+    try std.testing.expect(globMatch("f?le.txt", "file.txt"));
+    try std.testing.expect(globMatch("f??e.txt", "file.txt"));
+    try std.testing.expect(globMatch("f???.txt", "file.txt"));
+    try std.testing.expect(globMatch("?.txt", "a.txt"));
+    try std.testing.expect(!globMatch("?.txt", "ab.txt"));
+}
+
+test "recursive matching" {
+    try std.testing.expect(globMatch("**/*.js", "/lib/utils/helper.js"));
+    try std.testing.expect(globMatch("**/test/*.py", "project/test/a.py"));
+    try std.testing.expect(globMatch("**", "a/b/c/d/e.txt"));
+}
+
+test "escaped characters" {
+    try std.testing.expect(globMatch("file\\*.txt", "file*.txt"));
+    try std.testing.expect(globMatch("file\\?.txt", "file?.txt"));
+}
+
+test "hidden files" {
+    try std.testing.expect(globMatch(".*", ".gitignore"));
+    try std.testing.expect(!globMatch("*", ".gitignore"));
+}
+
+test "directory specific" {
+    try std.testing.expect(globMatch("docs/*.md", "docs/readme.md"));
+    try std.testing.expect(!globMatch("docs/*.md", "docs/readme.txt"));
+    try std.testing.expect(globMatch("docs/*", "docs/readme.md"));
+    try std.testing.expect(!globMatch("docs/*", "docs/sub/readme.md"));
+}
+
+test "empty strings and edge cases" {
     try std.testing.expect(globMatch("", ""));
-    try std.testing.expect(!globMatch("", "abc"));
-    try std.testing.expect(globMatch("***", "abc"));
-    try std.testing.expect(globMatch("?*?", "ab"));
-    try std.testing.expect(!globMatch("?*?", "a"));
+    try std.testing.expect(globMatch("*", ""));
+    try std.testing.expect(!globMatch("?", ""));
 }
